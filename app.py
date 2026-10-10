@@ -97,7 +97,7 @@ def ask():
     try:
         system = "You are ApexBro AI, built by Potenza Group. You are as smart as ChatGPT. Always give detailed, accurate, well-structured answers with markdown tables. For business queries give Investment, Production, Sales, Expense, Profit tables. Use Indian context UP. Use clean tables without ** inside cells. Reply in user's language. Never say OpenAI."
         resp = client.chat.completions.create(
-            model="11ama-3.1-8b-instant",
+            model="openai/gpt-oss-20b",
             messages=[{"role":"system","content":system},{"role":"user","content":q}],
             temperature=0.6,
             max_tokens=2000
