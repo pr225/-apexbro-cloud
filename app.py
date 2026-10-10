@@ -1,86 +1,90 @@
 import os
 from flask import Flask, request, jsonify
+from groq import Groq
 
 app = Flask(__name__)
-
-# Groq - safe import
-try:
-    from groq import Groq
-    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-except Exception as e:
-    client = None
-    print("Groq Error:", e)
+client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 HTML = """
 <!DOCTYPE html>
 <html><head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ApexBro PRO</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>ApexBro AI PRO - by Potenza Group</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;display:flex;height:100vh;background:#fff;overflow:hidden}
-.side{width:260px;background:#171717;color:#fff;display:flex;flex-direction:column;padding:10px}
-.new{background:#fff;color:#000;padding:12px;border-radius:10px;text-align:center;cursor:pointer;font-weight:bold;margin-bottom:10px}
-.list{flex:1;overflow:auto}.item{padding:10px;border-radius:8px;cursor:pointer;font-size:14px;color:#ddd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.item:hover{background:#2f2f2f}
-.main{flex:1;display:flex;flex-direction:column}
-.top{padding:12px;border-bottom:1px solid #eee;display:flex;gap:10px;align-items:center}
-.logo{width:36px;height:36px;background:#16a34a;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold}
-.chat{flex:1;overflow:auto;padding:16px;padding-bottom:110px}
-.row{display:flex;gap:10px;margin:14px auto;max-width:800px}
-.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;flex-shrink:0}
-.u{background:#000;color:#fff}.b{background:#16a34a;color:#fff}
-.bub{flex:1;line-height:1.5;padding-top:4px;white-space:pre-wrap}
-.bar{position:absolute;bottom:0;left:0;right:0;background:#fff;padding:15px;display:flex;justify-content:center}
-.box{width:100%;max-width:800px;background:#f1f1f1;border-radius:28px;display:flex;gap:6px;padding:8px;align-items:center}
-.box input{flex:1;background:transparent;border:none;outline:none;padding:10px;font-size:16px}
-.box button{width:42px;height:42px;border-radius:50%;border:none;cursor:pointer}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;height:100vh;height:100dvh;display:flex;background:#fff;color:#0d0d0d;overflow:hidden}
+.side{width:260px;background:#171717;color:#fff;display:flex;flex-direction:column;flex-shrink:0;z-index:5}
+.brand{padding:14px 14px 8px 14px;display:flex;align-items:center;gap:10px}
+.p-logo{width:32px;height:32px;background:#19c37d;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800}
+.new{margin:8px 10px;background:#fff;color:#000;padding:11px;border-radius:10px;text-align:center;cursor:pointer;font-weight:700;font-size:14px}
+.new:hover{background:#ececec}
+.list{flex:1;overflow-y:auto;padding:6px}
+.item{padding:10px 10px;border-radius:8px;font-size:14px;color:#ececec;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+.item:hover{background:#2f2f2f}
+.small{font-size:11px;color:#7a7a7a;padding:12px}
+.main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;background:#fff}
+.top{height:56px;display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid #efefef;flex-shrink:0}
+.top b{font-size:15px}.top span{font-size:12px;color:#666}
+.hamburger{display:none;border:none;background:transparent;font-size:22px;cursor:pointer}
+.chat{flex:1;overflow-y:auto;padding:10px 0 160px 0}
+.row{max-width:760px;width:100%;margin:0 auto;padding:18px 20px;display:flex;gap:14px}
+.av{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.av.u{background:#000;color:#fff}.av.b{background:#19c37d;color:#fff}
+.bub{flex:1;white-space:pre-wrap;line-height:1.65;font-size:15px;padding-top:1px;word-break:break-word}
+.bottom{position:absolute;left:0;right:0;bottom:0;padding:12px 12px 18px 12px;background:linear-gradient(to top, #fff 65%, rgba(255,255,255,0) 100%)}
+.box{max-width:760px;margin:0 auto;background:#f4f4f4;border-radius:28px;display:flex;align-items:center;padding:6px 8px;gap:4px;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+.box input{flex:1;background:transparent;border:none;outline:none;padding:12px 8px;font-size:16px}
+.icon{width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px}
+.mic{background:transparent}
+.mic:hover{background:#e9e9e9}
 .send{background:#000;color:#fff}
+.send:disabled{opacity:0.3}
+.overlay{display:none}
+@media(max-width:820px){
+.hamburger{display:block}
+.side{position:fixed;left:-100%;top:0;bottom:0;width:280px;transition:0.25s ease;box-shadow:20px 0 60px rgba(0,0,0,0.3)}
+.side.open{left:0}
+.overlay.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:4}
+}
 </style></head>
 <body>
-<div class="side">
-<div class="new" onclick="newC()">+ New Chat</div>
+<div class="overlay" id="over" onclick="toggleSide()"></div>
+<div class="side" id="side">
+<div class="brand"><div class="p-logo">P</div><div><div style="font-weight:700;font-size:14px">Potenza Group</div><div style="font-size:11px;color:#aaa">White ChatGPT Theme</div></div></div>
+<div class="new" onclick="createChat()">+ New Chat</div>
 <div class="list" id="list"></div>
-<div style="font-size:11px;color:#888;padding:10px">by Potenza Group - PRO</div>
+<div class="small">ApexBro AI PRO • Mic left me hai</div>
 </div>
-<div class="main" style="position:relative">
-<div class="top"><div class="logo">P</div><div><b>ApexBro AI PRO</b><div style="font-size:12px;color:gray">by Potenza Group</div></div></div>
+
+<div class="main">
+<div class="top">
+<button class="hamburger" onclick="toggleSide()">☰</button>
+<div class="p-logo" style="width:30px;height:30px">P</div>
+<div><b>ApexBro AI PRO</b> <span>by Potenza Group</span></div>
+</div>
 <div class="chat" id="chat"></div>
-<div class="bar"><div class="box">
-<button onclick="voice()" style="background:transparent">🎤</button>
-<input id="inp" placeholder="Message ApexBro..." onkeydown="if(event.key==='Enter')send()">
-<button onclick="send()" class="send">↑</button>
-</div></div>
+<div class="bottom">
+<div class="box">
+<button class="icon mic" onclick="startVoice()" title="Voice">🎤</button>
+<input id="inp" placeholder="Message ApexBro..." autocomplete="off" onkeydown="if(event.key==='Enter') doSend()">
+<button class="icon send" id="sendBtn" onclick="doSend()">↑</button>
 </div>
+<div style="text-align:center;font-size:11px;color:#999;margin-top:8px">ApexBro can make mistakes. Check important info.</div>
+</div>
+</div>
+
 <script>
-let chats=JSON.parse(localStorage.getItem('apex')||'[]');let cur=null;
-function render(){let l=document.getElementById('list');l.innerHTML='';chats.slice().reverse().forEach(c=>{let d=document.createElement('div');d.className='item';d.innerText=c.title;d.onclick=()=>load(c.id);l.appendChild(d)})}
-function newC(){cur=Date.now()+'';chats.push({id:cur,title:'New Chat',msgs:[{r:'bot',t:'Hi! Mai ApexBro PRO hu 👋 Left me history hai.'}]});save();render();load(cur)}
-function load(id){cur=id;let c=chats.find(x=>x.id==id);let ch=document.getElementById('chat');ch.innerHTML='';c.msgs.forEach(m=>add(m.t,m.r,false));ch.scrollTop=ch.scrollHeight}
-function add(t,r,s=true){let ch=document.getElementById('chat');let row=document.createElement('div');row.className='row';row.innerHTML=`<div class="av ${r=='user'?'u':'b'}">${r=='user'?'U':'P'}</div><div class="bub">${t}</div>`;ch.appendChild(row);ch.scrollTop=ch.scrollHeight;if(s&&cur){let c=chats.find(x=>x.id==cur);c.msgs.push({r:r,t:t});if(c.msgs.length==2)c.title=t.slice(0,28);save();render()}}
-async function send(){let i=document.getElementById('inp');let t=i.value.trim();if(!t)return;if(!cur)newC();add(t,'user');i.value='';let res=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({m:t})});let d=await res.json();add(d.r,'bot')}
-function save(){localStorage.setItem('apex',JSON.stringify(chats))}
-function voice(){let R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){alert('Mic support nahi');return}let rec=new R();rec.lang='hi-IN';rec.start();rec.onresult=e=>{document.getElementById('inp').value=e.results[0][0].transcript}}
-if(chats.length==0)newC();else{render();load(chats[chats.length-1].id)}
-</script>
-</body></html>
-"""
+let chats = JSON.parse(localStorage.getItem('apex_pro_final_v3') || '[]');
+let cur = null;
 
-@app.route("/")
-def home():
-    return HTML
+function toggleSide(){
+ document.getElementById('side').classList.toggle('open');
+ document.getElementById('over').classList.toggle('open');
+}
 
-@app.route("/chat", methods=["POST"])
-def chat_api():
-    try:
-        if not client:
-            return jsonify({"r": "GROQ_API_KEY Render me set nahi hai! Render > Environment me jao."})
-        m = request.json.get("m","")
-        comp = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[{"role":"user","content":m}]
-        )
-        return jsonify({"r": comp.choices[0].message.content})
-    except Exception as e:
-        return jsonify({"r": f"Error aaya: {str(e)}"})
+function save(){ localStorage.setItem('apex_pro_final_v3', JSON.stringify(chats)); }
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT",10000)))
+function renderList(){
+ const el = document.getElementById('list');
+ el.innerHTML =
