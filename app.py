@@ -24,8 +24,8 @@ input{flex:1;padding:12px 15px;border-radius:25px;border:none;background:#222;co
 button{width:45px;height:45px;border-radius:50%;border:none;background:#00ff88}
 </style></head>
 <body>
-<div class="header">🤖 ApexBro AI</div>
-<div id="chat"><div class="msg bot">Hi! Bolo kya help chahiye?</div></div>
+<div class="header">🤖 ApexBro AI - by Potenza Group</div>
+<div id="chat"><div class="msg bot">Hi! Main ApexBro hu, built by Potenza Group. Bolo kya help chahiye?</div></div>
 <div class="bar"><input id="q" placeholder="Message..." onkeypress="if(event.key==='Enter')send()"><button onclick="send()">➤</button></div>
 <script>
 async function send(){
@@ -51,7 +51,10 @@ def ask():
     try:
         resp = client.chat.completions.create(
             model="openai/gpt-oss-20b",
-            messages=[{"role":"user","content":q}]
+            messages=[
+                {"role": "system", "content": "You are ApexBro AI, created by Potenza Group. You are a helpful, friendly AI assistant built by Potenza Group. Never say you are OpenAI or ChatGPT. If someone asks who built you, always say 'I was built by Potenza Group - ApexBro AI'. Always reply in same language user uses."},
+                {"role":"user","content":q}
+            ]
         )
         return jsonify({"answer": resp.choices[0].message.content})
     except Exception as e:
