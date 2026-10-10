@@ -1,0 +1,46 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101522">
+  <title>ApexBro Personal AI</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="logo">A</div>
+      <div>
+        <h1>ApexBro AI</h1>
+        <p>Your personal AI assistant</p>
+      </div>
+      <span class="status">Online</span>
+    </header>
+
+    <section id="chat" aria-live="polite">
+      <div class="message assistant">
+        Namaste! Main ApexBro AI hoon. Batao, aaj main tumhari kya help karun?
+      </div>
+    </section>
+
+    <div id="error" role="alert"></div>
+
+    <form id="chat-form">
+      <textarea
+        id="message"
+        placeholder="Apna message likho..."
+        rows="1"
+        maxlength="10000"
+        required
+      ></textarea>
+      <button id="send" type="submit">Send</button>
+    </form>
+
+    <footer>Powered by OpenAI</footer>
+  </main>
+  <script src="/app.js"></script>
+</body>
+  </html>
+  
