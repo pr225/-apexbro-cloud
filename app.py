@@ -10,102 +10,92 @@ def home():
     return """
 <!DOCTYPE html>
 <html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ApexBro AI - Potenza Group</title>
+<title>ApexBro LIVE - Potenza Group</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:system-ui;background:#0f0f0f;color:#fff;height:100dvh;display:flex;flex-direction:column}
-.header{padding:15px;text-align:center;border-bottom:1px solid #222;font-weight:bold;display:flex;justify-content:center;align-items:center;gap:8px}
+body{font-family:system-ui;background:#0a0a0a;color:#fff;height:100dvh;display:flex;flex-direction:column}
+.header{padding:14px;text-align:center;border-bottom:1px solid #222;font-weight:bold;display:flex;justify-content:space-between;align-items:center}
 #chat{flex:1;overflow-y:auto;padding:15px;display:flex;flex-direction:column;gap:10px}
-.msg{max-width:85%;padding:12px 16px;border-radius:18px;font-size:15px;white-space:pre-wrap;position:relative;line-height:1.4}
+.msg{max-width:85%;padding:12px 16px;border-radius:18px;font-size:15px;white-space:pre-wrap;line-height:1.4}
 .user{align-self:flex-end;background:#0084ff}
-.bot{align-self:flex-start;background:#222;padding-right:42px}
-.bar{display:flex;gap:6px;padding:10px;background:#151515;border-top:1px solid #222;align-items:center}
-input{flex:1;padding:12px 15px;border-radius:25px;border:none;background:#222;color:#fff;outline:none}
-button{width:45px;height:45px;border-radius:50%;border:none;font-size:18px;cursor:pointer}
-.send{background:#00ff88}
-.mic{background:#333;color:#fff}
-.mic.listening{background:#ff0040;animation:pulse 1s infinite}
-.speak{position:absolute;right:6px;bottom:6px;background:#333;border:none;font-size:14px;cursor:pointer;width:32px;height:32px;border-radius:50%;color:#fff}
-@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+.bot{align-self:flex-start;background:#222}
+.bar{display:flex;gap:8px;padding:12px;background:#151515;border-top:1px solid #222;align-items:center;justify-content:center}
+.live-btn{padding:14px 28px;border-radius:30px;border:none;font-size:16px;font-weight:bold;cursor:pointer;transition:0.3s}
+.live-off{background:#222;color:#fff;border:2px solid #333}
+.live-on{background:#00ff88;color:#000;box-shadow:0 0 20px #00ff88;animation:pulse 1.5s infinite}
+.small{font-size:12px;opacity:0.6;text-align:center;padding:5px}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
 </style></head>
 <body>
-<div class="header">🤖 ApexBro AI - by Potenza Group</div>
-<div id="chat"><div class="msg bot">Hey! I'm ApexBro, built by Potenza Group. Kaise ho yaar? Mic dabao aur baat karo! <button class='speak' onclick="speakText(this)">🔊</button></div></div>
+<div class="header"><span>🤖 ApexBro LIVE</span><span style="font-size:11px;opacity:0.6">Potenza Group</span></div>
+<div id="chat"><div class="msg bot">Live Mode ON karo, fir bas bolte jao... mai sununga aur bolunga. ChatGPT jaisa!</div></div>
+<div class="small" id="status">Live OFF hai - button dabao</div>
 <div class="bar">
-<button class="mic" id="micBtn" onclick="toggleMic()">🎤</button>
-<input id="q" placeholder="Bolo kuch..." onkeypress="if(event.key==='Enter')send()">
-<button class="send" onclick="send()">➤</button>
+<button id="liveBtn" class="live-btn live-off" onclick="toggleLive()">🎤 START LIVE</button>
 </div>
 <script>
 let recognition;
-let isListening=false;
-let selectedMaleVoice=null;
+let isLive=false;
+let selectedVoice=null;
+let isSpeaking=false;
 
 function loadVoices(){
-  let voices = speechSynthesis.getVoices();
-  // Try to find best male voice like ChatGPT
-  selectedMaleVoice = voices.find(v => v.name.includes('Google UK English Male')) ||
-                      voices.find(v => v.name.includes('Male') && v.lang.startsWith('en')) ||
-                      voices.find(v => v.name.includes('Google') && v.lang=='en-IN') ||
-                      voices.find(v => v.lang.startsWith('en-IN')) ||
-                      voices.find(v => v.lang.startsWith('en')) ||
-                      voices[0];
+  let v = speechSynthesis.getVoices();
+  selectedVoice = v.find(x=>x.name.includes('Google UK English Male')) || v.find(x=>x.name.includes('Male')) || v.find(x=>x.lang=='en-IN') || v[0];
 }
-speechSynthesis.onvoiceschanged = loadVoices;
-loadVoices();
+speechSynthesis.onvoiceschanged=loadVoices; loadVoices();
 
-if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if(SR){
   recognition = new SR();
   recognition.lang='en-IN';
   recognition.continuous=false;
   recognition.interimResults=false;
-  recognition.onstart=()=>{isListening=true; document.getElementById('micBtn').classList.add('listening'); document.getElementById('micBtn').innerText='🔴';}
-  recognition.onend=()=>{isListening=false; document.getElementById('micBtn').classList.remove('listening'); document.getElementById('micBtn').innerText='🎤';}
-  recognition.onresult=(e)=>{
-    let text=e.results[0][0].transcript;
-    document.getElementById('q').value=text;
-    send();
+  recognition.onresult = (e)=>{
+    let text = e.results[0][0].transcript;
+    if(!text) return;
+    addMsg(text,'user');
+    callAI(text);
+  };
+  recognition.onend = ()=>{
+    if(isLive &&!isSpeaking){ recognition.start(); document.getElementById('status').innerText='☀️ Sun raha hu... bolo'; }
+  };
+  recognition.onerror = (e)=>{ if(isLive) setTimeout(()=>{try{recognition.start()}catch{}},1000); };
+}
+
+function addMsg(t,cls){ let c=document.getElementById('chat'); c.innerHTML+=`<div class='msg ${cls}'>${t}</div>`; c.scrollTop=c.scrollHeight; }
+
+function toggleLive(){
+  let btn=document.getElementById('liveBtn');
+  if(!isLive){
+    isLive=true; btn.innerText='🔴 STOP LIVE'; btn.className='live-btn live-on';
+    document.getElementById('status').innerText='🎧 Live ON - bolo kuch bhi';
+    try{recognition.start()}catch{}
+  }else{
+    isLive=false; btn.innerText='🎤 START LIVE'; btn.className='live-btn live-off';
+    document.getElementById('status').innerText='Live OFF hai';
+    try{recognition.stop(); speechSynthesis.cancel();}catch{}
   }
 }
 
-function toggleMic(){
-  if(!recognition){alert('Chrome me kholo yaar'); return;}
-  if(isListening){recognition.stop();}else{recognition.start();}
-}
-
-function speakText(btn){
-  let text = btn.parentElement.innerText.replace('🔊','').trim();
-  speechSynthesis.cancel();
-  let utter = new SpeechSynthesisUtterance(text);
-  if(selectedMaleVoice) utter.voice = selectedMaleVoice;
-  utter.lang = /[\\u0900-\\u097F]/.test(text)? 'hi-IN' : 'en-IN';
-  utter.rate = 0.95;
-  utter.pitch = 0.9;
-  utter.volume = 1;
-  speechSynthesis.speak(utter);
-}
-
-async function send(){
- let i=document.getElementById('q'),t=i.value.trim(); if(!t)return;
- let c=document.getElementById('chat'); c.innerHTML+=`<div class='msg user'>${t}</div>`; i.value=''; c.scrollTop=c.scrollHeight;
- c.innerHTML+=`<div id='tmp' class='msg bot'>typing...</div>`;
- try{
-  let r=await fetch('/ask?q='+encodeURIComponent(t));
+async function callAI(text){
+  isSpeaking=true;
+  try{recognition.stop()}catch{}
+  document.getElementById('status').innerText='🤔 Soch raha hu...';
+  let r=await fetch('/ask?q='+encodeURIComponent(text));
   let d=await r.json();
-  let ans = d.answer||d.error||'No reply';
-  document.getElementById('tmp').remove();
-  c.innerHTML+=`<div class='msg bot'>${ans.replace(/\\n/g,'<br>')}<button class='speak' onclick="speakText(this)">🔊</button></div>`;
-  // Auto speak with male voice
-  speechSynthesis.cancel();
+  let ans=d.answer||'Sorry sun nahi paya';
+  addMsg(ans,'bot');
+  document.getElementById('status').innerText='🔊 Bol raha hu...';
   let utter = new SpeechSynthesisUtterance(ans);
-  if(selectedMaleVoice) utter.voice = selectedMaleVoice;
-  utter.lang = /[\\u0900-\\u097F]/.test(ans)? 'hi-IN' : 'en-IN';
-  utter.rate = 0.95;
-  utter.pitch = 0.88;
+  if(selectedVoice) utter.voice=selectedVoice;
+  utter.rate=0.92; utter.pitch=0.9;
+  utter.onend=()=>{
+    isSpeaking=false;
+    if(isLive){ document.getElementById('status').innerText='☀️ Sun raha hu... bolo'; try{recognition.start()}catch{} }
+    else{ document.getElementById('status').innerText='Live OFF hai'; }
+  };
   speechSynthesis.speak(utter);
- }catch(e){document.getElementById('tmp').remove(); c.innerHTML+=`<div class='msg bot'>Error: ${e}</div>`;}
- c.scrollTop=c.scrollHeight;
 }
 </script></body></html>
 """
@@ -113,19 +103,17 @@ async function send(){
 @app.route("/ask")
 def ask():
     q = request.args.get("q","")
-    if not q:
-        return jsonify({"error":"q missing"})
     try:
         resp = client.chat.completions.create(
             model="openai/gpt-oss-20b",
             messages=[
-                {"role": "system", "content": "You are ApexBro AI, a friendly male assistant built by Potenza Group. Talk exactly like ChatGPT - warm, friendly, casual, helpful, slightly witty. Use 'yaar', 'bro' sometimes. Keep answers conversational and short (2-3 lines) like a friend, not formal. Never say you are OpenAI. Always say you are built by Potenza Group if asked. Reply in same language user uses."},
+                {"role": "system", "content": "You are ApexBro LIVE, built by Potenza Group. You are in LIVE voice call mode. Talk like ChatGPT Advanced Voice - super friendly, natural, human-like male friend. Keep answers VERY short - 1 or 2 sentences max, because it's voice chat. No long paragraphs. No 'yaar' in every sentence, be natural. If user says hi, say hi back warmly."},
                 {"role":"user","content":q}
             ]
         )
         return jsonify({"answer": resp.choices[0].message.content})
     except Exception as e:
-        return jsonify({"error": str(e)})
+        return jsonify({"answer": "Thoda network issue hai, fir se bolo?"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
