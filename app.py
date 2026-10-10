@@ -50,16 +50,12 @@ def ask():
         return jsonify({"error":"q missing"})
     try:
         resp = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model="openai/gpt-oss-20b",
             messages=[{"role":"user","content":q}]
         )
         return jsonify({"answer": resp.choices[0].message.content})
     except Exception as e:
         return jsonify({"error": str(e)})
-
-@app.route("/api/task")
-def old_api():
-    return jsonify({"msg":"Use /ask?q=hi"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
